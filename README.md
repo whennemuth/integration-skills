@@ -93,6 +93,10 @@ Recommended setting:
       "name": "skills"
     },
     {
+      "path": ".copilot/memories",
+      "name": "workspace-memories"
+    },
+    {
       "path": "integration-core",
       "name": "core"
     }
@@ -118,6 +122,10 @@ Recommended setting:
       "name": "skills"
     },
     {
+      "path": ".copilot/memories",
+      "name": "workspace-memories"
+    },
+    {
       "path": "integration-core",
       "name": "core"
     },
@@ -140,6 +148,20 @@ Recommended setting:
   }
 }
 ```
+
+## Workspace-Scoped Memory Files
+
+The `.copilot/memories/` directory (displayed as "workspace-memories" in the workspace) stores workspace-scoped Copilot memory files that apply to all integration projects.
+
+**Purpose**: Contains coding preferences, task verification protocols, and workflow requirements that should be consistently applied across all projects (core, huron-person, fargate, dashboard, file-drop, etc.).
+
+**Key file**: `task-verification-protocol.md` - Defines requirements for build verification, test execution, and completion reporting on all code implementation tasks.
+
+**Discovery**: VS Code Copilot automatically loads memory files from this directory when included as a workspace folder in your `.code-workspace` file.
+
+**Location**: The `.copilot/memories/` directory exists at the workspace root level (parallel to project folders), not within individual project repositories. This ensures workspace-wide conventions are version-controlled separately from project-specific code.
+
+**Scope**: These memory files complement (not replace) the skills in this repository. Skills define domain-specific technical patterns, while memory files define workflow and verification requirements.
 
 ## Maintenance Rules
 
