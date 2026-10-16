@@ -6,7 +6,7 @@ description: Structure and test Docker entry points for ECS Fargate tasks with p
 # Docker Entry Point Pattern for ECS Fargate
 
 ## Overview
-Docker entry points (`docker/processor.ts`, `docker/chunker.ts`, `docker/merger.ts`) are the executable interfaces between CDK infrastructure and application code. They:
+Docker entry points (`docker/processor.ts`, `docker/chunker.ts`, `docker/post-processor.ts`) are the executable interfaces between CDK infrastructure and application code. They:
 - Load environment configuration
 - Initialize dependencies
 - Manage lifecycle

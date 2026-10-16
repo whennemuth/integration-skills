@@ -1,6 +1,6 @@
 ---
 category: Architecture & Patterns
-description: Understand the three-phase streaming pipeline architecture (chunking, processing, merging) and how to test each phase in isolation.
+description: Understand the three-phase streaming pipeline architecture (chunking, processing, post-processing) and how to test each phase in isolation.
 ---
 
 # Three-Phase Pipeline Architecture
@@ -44,9 +44,9 @@ The three-phase pipeline processes large datasets by breaking them into chunks, 
                            │
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 3: MERGING                                            │
+│ PHASE 3: POST-PROCESSING                                    │
 │ Purpose: Consolidate results + write delta storage         │
-│ Location: docker/merger.ts (containerized)                 │
+│ Location: docker/post-processor.ts (containerized)         │
 ├─────────────────────────────────────────────────────────────┤
 │ Input:  Processed chunks from S3                           │
 │ Output: Delta records → data/delta-storage/TIMESTAMP/      │
@@ -151,7 +151,7 @@ Task-1 processes chunk-0001 → processed-0001.ndjson
 Task-2 processes chunk-0002 → processed-0002.ndjson
 Task-3 processes chunk-0003 → processed-0003.ndjson
         ↓ (All complete)
-Phase 3 Merger consolidates all processed chunks
+Phase 3 Post-processor consolidates all processed chunks
 ```
 
 **Key Benefit**: If one task fails, others continue. Retry failed chunks independently.
@@ -218,7 +218,7 @@ DOCKER_PROCESSOR_MAX_WORKERS=4         # Parallelism
 DATA_MAPPER_FIELD_MAP=<mapping-config> # Transformation
 ```
 
-## Phase 3: Merging
+## Phase 3: Post-processing
 
 ### Purpose
 Consolidate all processed chunks and write final results:
@@ -228,21 +228,21 @@ Consolidate all processed chunks and write final results:
 - Publish statistics
 
 ### Components
-- **docker/merger.ts**: Consolidation orchestrator
+- **docker/post-processor.ts**: Consolidation orchestrator
 - **DeferredDeleteHandler**: Coordinate deletes
-- **StatisticsTable**: Merge metrics
+- **StatisticsTable**: Post-processing metrics
 - **PersonCache**: Deduplication
 
 ### Implementation Details
 
-**Merge Workflow**:
+**Post-processing Workflow**:
 ```
 Phase 2 Outputs:
 processed-0001.ndjson
 processed-0002.ndjson
 processed-0003.ndjson
         ↓
-Merger Actions:
+Post-processor Actions:
 1. Read all processed chunks
 2. Merge into single delta
 3. Detect deletions (soft deletes)
@@ -262,11 +262,11 @@ data/delta-storage/
 
 ### Testing Phase 3
 
-**Harness**: `docker/merger.ts`
+**Harness**: `docker/post-processor.ts`
 
 ```bash
-# Test merger after processor completes
-npx ts-node docker/merger.ts
+# Test post-processor after processor completes
+npx ts-node docker/post-processor.ts
 
 # Verify:
 # 1. Reads all processed chunks
@@ -287,7 +287,7 @@ npx ts-node docker/merger.ts
 ### Environment Variables
 ```
 DATATARGET_BASE_URL=<target-url>           # Shared
-DOCKER_MERGER_TIMEOUT=600000               # Long timeout
+DOCKER_POST_PROCESSOR_TIMEOUT=600000       # Long timeout
 DEFERRED_DELETE_HANDLER_BATCH_SIZE=1000    # Delete batching
 STATISTICS_TABLE_UPDATE_INTERVAL=5000      # Metrics update
 ```
@@ -308,9 +308,9 @@ STATISTICS_TABLE_UPDATE_INTERVAL=5000      # Metrics update
    # Verify processed chunks in S3
    ```
 
-3. **Test Phase 3 (Merging)**
+3. **Test Phase 3 (Post-processing)**
    ```bash
-   npx ts-node docker/merger.ts
+   npx ts-node docker/post-processor.ts
    # Verify delta storage created
    ```
 
@@ -336,11 +336,11 @@ npm run test:integration
 3. Check error logs from processor task
 4. Retry specific chunk independently
 
-### "Merger doesn't find processed chunks"
+### "Post-processor doesn't find processed chunks"
 1. Verify processor completed successfully
 2. Check S3 path configuration
 3. Verify IAM permissions for S3 access
-4. Check merger S3 bucket/prefix configuration
+4. Check post-processor S3 bucket/prefix configuration
 
 ### "Statistics don't match actual records"
 1. Verify all chunks processed
@@ -359,5 +359,5 @@ npm run test:integration
 - **Chunk Size**: Smaller chunks = more parallelism, higher overhead
 - **Task Count**: More tasks = parallel throughput, higher AWS costs
 - **S3 Throughput**: Consider regional limits
-- **Network**: Data transfer between phases (chunker → processor → merger)
+- **Network**: Data transfer between phases (chunker → processor → post-processor)
 
