@@ -1,4 +1,4 @@
-# integration-workspace-skills (BU → Huron person integration)
+# integration-skills (BU → Huron person integration)
 
 Shared Copilot skills repository for the BU → Huron person integration workspace.
 
@@ -59,112 +59,113 @@ flowchart LR
 
 ## Layout
 
+This repository is cloned **as the `.claude` directory of the workspace root**, so each skill ends up at `<workspace root>/.claude/skills/<skill-name>/SKILL.md`. That is a native project skill location that both VS Code (GitHub Copilot) and Claude Code discover without custom settings.
+
+Repository layout:
+
 ```text
-integration-workspace-skills/
-  .claude/
+integration-skills/
+  README.md
+  skills/
+    <skill-name>/
+      SKILL.md
+```
+
+Workspace layout after cloning:
+
+```text
+<workspace root>/
+  .claude/                  <- this repository
     skills/
       <skill-name>/
         SKILL.md
+  .copilot/memories/
+  integration-core/
+  integration-huron-person/
+  integration-huron-person-fargate/
+  ...
 ```
 
-Skills live in `.claude/skills/`, a standard project skill location that both VS Code (GitHub Copilot) and Claude Code discover natively. No `chat.agentSkillsLocations` setting is needed.
+Skills must stay directly under `skills/` in this repository. Do not add a `.claude/` directory inside the repository.
+
+## Installation
+
+```bash
+cd <workspace root>
+git clone https://github.com/whennemuth/integration-skills.git .claude
+```
+
+`git clone` fails if `<workspace root>/.claude` already exists and is not empty (for example, Claude Code may already have created `.claude/settings.local.json`). In that case, initialize the repository in place:
+
+```bash
+cd <workspace root>/.claude
+git init
+git remote add origin https://github.com/whennemuth/integration-skills.git
+git fetch origin
+git checkout -t origin/master
+```
+
+Claude Code's personal `settings.local.json` is ignored by this repository's `.gitignore`.
 
 ## VS Code Setup (multi-root `.code-workspace`)
 
-VS Code discovers project skills in `.claude/skills/` (as well as `.github/skills/` and `.agents/skills/`) at the top of **each root folder** of a [**multi-root**](https://code.visualstudio.com/docs/editing/workspaces/workspaces#_multiroot-workspaces) workspace. Skills found in any root are available to chat for the whole workspace, regardless of which project you are working in.
+VS Code discovers project skills in `.claude/skills/` only at the top of each **root folder** of a [**multi-root**](https://code.visualstudio.com/docs/editing/workspaces/workspaces#_multiroot-workspaces) workspace. Skills found in any root are available to chat across the whole workspace.
 
-To make these skills available, add this repository as a root folder in your `.code-workspace` file (see the examples below). Nothing else is required.
+Because the skills live in the workspace root rather than in a package repository, add the workspace root itself as a root folder of your `.code-workspace` file (which is saved in the workspace root):
+
+```json
+{
+  "folders": [
+    { "path": ".", "name": "workspace" },
+    { "path": ".copilot/memories", "name": "workspace-memories" },
+    { "path": "integration-core", "name": "core" },
+    { "path": "integration-huron-person", "name": "huron-person" },
+    { "path": "integration-huron-person-fargate", "name": "huron-person-fargate" }
+  ],
+  "settings": {
+    "chat.tools.terminal.autoApprove": {
+      "npm test": true
+    }
+  }
+}
+```
+
+The `workspace` root also contains every package folder, so hide them inside that root to avoid listing each repository twice in the Explorer and search results. Create `<workspace root>/.vscode/settings.json`:
+
+```json
+{
+  "files.exclude": {
+    ".copilot": true,
+    "integration-*": true,
+    "basic-readonly-npm-registry": true
+  }
+}
+```
+
+Folder-level settings apply only to their own root folder, so this hides the package folders in the `workspace` root without affecting their own roots. Each package repository keeps its own `.vscode/launch.json`, which VS Code only reads when the repository is a root folder.
 
 Notes:
-- Skills are only available while `integration-workspace-skills` is a root folder of the open workspace. Include it in every `.code-workspace` file for this integration.
+- Do not open the workspace root as a single folder (File > Open Folder). Discovery would still work, but VS Code ignores the `.vscode/launch.json` files of nested package repositories.
 - Do not add same-named skills to the package repositories. When roots contain duplicate skill names, only the primary root's copy is used.
-- GitHub Copilot CLI and the GitHub Copilot app do not use VS Code workspaces. They discover project skills only in the repository they are started in.
+- GitHub Copilot CLI and the GitHub Copilot app do not use VS Code workspaces. They discover project skills only in the directory or repository they are started in.
 
 See [Use Agent Skills in VS Code](https://code.visualstudio.com/docs/agent-customization/agent-skills).
 
 ## Claude Code Setup (started in the workspace root)
 
-Claude Code has no multi-root workspace. A session starting in the workspace root directory (the directory that contains `integration-workspace-skills/` and the package repositories) loads `.claude/skills/` from that directory and its parents, but skills in subdirectories such as `integration-workspace-skills/.claude/skills/` are only loaded after Claude first reads or edits a file in that subdirectory.
-
-To load the skills at startup, add this repository as an additional directory:
+Claude Code loads project skills from `.claude/skills/` in the directory where it starts, so no extra configuration is needed:
 
 ```bash
-cd <workspace-root>
-claude --add-dir integration-workspace-skills
-```
-
-Or, from within a running session:
-
-```text
-/add-dir integration-workspace-skills
+cd <workspace root>
+claude
 ```
 
 Notes:
-- `permissions.additionalDirectories` in `settings.json` only grants file access. It does not load skills, so use `--add-dir` or `/add-dir`.
-- The same approach works when starting Claude Code inside a package repository, e.g. `claude --add-dir ../integration-workspace-skills` from `integration-huron-person-fargate/`.
-- Claude Code cloud sessions do not have access to this local repository. They only load skills committed to the checked-out repository or enabled on your claude.ai account.
+- When starting Claude Code inside a package repository, it stops searching parent directories at that repository's root. Add the workspace root with `--add-dir` (or `/add-dir` in a running session) to load the skills, e.g. `claude --add-dir ..` from `integration-huron-person-fargate/`.
+- `permissions.additionalDirectories` in `settings.json` only grants file access. It does not load skills.
+- Claude Code cloud sessions do not have access to this local clone. They only load skills committed to the checked-out repository or enabled on your claude.ai account.
 
 See [Extend Claude with skills](https://code.claude.com/docs/en/skills).
-
-## Example Workspace: Core Only
-
-```json
-{
-  "folders": [
-    {
-      "path": "integration-workspace-skills",
-      "name": "skills"
-    },
-    {
-      "path": ".copilot/memories",
-      "name": "workspace-memories"
-    },
-    {
-      "path": "integration-core",
-      "name": "core"
-    }
-  ],
-  "settings": {
-    "chat.tools.terminal.autoApprove": {
-      "npm test": true
-    }
-  }
-}
-```
-
-## Example Workspace: Core + Person + Fargate
-
-```json
-{
-  "folders": [
-    {
-      "path": "integration-workspace-skills",
-      "name": "skills"
-    },
-    {
-      "path": ".copilot/memories",
-      "name": "workspace-memories"
-    },
-    {
-      "path": "integration-core",
-      "name": "core"
-    },
-    {
-      "path": "integration-huron-person",
-      "name": "huron-person"
-    },
-    {
-      "path": "integration-huron-person-fargate",
-      "name": "huron-person-fargate"
-    }
-  ],
-  "settings": {
-    "chat.tools.terminal.autoApprove": {
-      "npm test": true
-    }
-  }
-}
-```
 
 ## Workspace-Scoped Memory Files
 
@@ -182,7 +183,7 @@ The `.copilot/memories/` directory (displayed as "workspace-memories" in the wor
 
 ## Maintenance Rules
 
-1. Keep each skill in its own folder with `SKILL.md` under `.claude/skills/`.
+1. Keep each skill in its own folder with `SKILL.md` directly under `skills/`.
 2. Use one canonical skill location path in docs and examples.
 3. Document major skill changes in this repo history.
 4. Do not assume workspace-level source control for package repos.

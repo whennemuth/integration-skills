@@ -31,6 +31,9 @@ desktop.ini
 .env.local
 .env.*.local
 
+# Claude Code personal settings (this repo is cloned as <workspace root>/.claude)
+settings.local.json
+
 # Node modules (if any tooling is added)
 node_modules/
 npm-debug.log*
