@@ -1,10 +1,10 @@
 # integration-skills (BU → Huron person integration)
 
-Shared Copilot skills repository for the BU → Huron person integration workspace.
+Shared agent skills and workspace-wide instructions (`CLAUDE.md`) for the BU → Huron person integration workspace.
 
 ## Purpose
 
-This repository stores reusable skills that apply across multiple independent package repositories in this workspace.
+This repository stores reusable skills and the workspace-wide `CLAUDE.md` instructions file that apply across multiple independent package repositories in this workspace.
 
 The package repositories remain independently versioned and deployed:
 - `integration-core`
@@ -59,12 +59,13 @@ flowchart LR
 
 ## Layout
 
-This repository is cloned **as the `.claude` directory of the workspace root**, so each skill ends up at `<workspace root>/.claude/skills/<skill-name>/SKILL.md`. That is a native project skill location that both VS Code (GitHub Copilot) and Claude Code discover without custom settings.
+This repository is cloned **as the `.claude` directory of the workspace root**, so each skill ends up at `<workspace root>/.claude/skills/<skill-name>/SKILL.md` and the workspace instructions end up at `<workspace root>/.claude/CLAUDE.md`. Both are native locations that VS Code (GitHub Copilot), GitHub Copilot CLI, and Claude Code discover without custom settings (see [Workspace Instructions](#workspace-instructions-claudemd)).
 
 Repository layout:
 
 ```text
 integration-skills/
+  CLAUDE.md
   README.md
   skills/
     <skill-name>/
@@ -76,10 +77,10 @@ Workspace layout after cloning:
 ```text
 <workspace root>/
   .claude/                  <- this repository
+    CLAUDE.md
     skills/
       <skill-name>/
         SKILL.md
-  .copilot/memories/
   integration-core/
   integration-huron-person/
   integration-huron-person-fargate/
@@ -117,7 +118,6 @@ Because the skills live in the workspace root rather than in a package repositor
 {
   "folders": [
     { "path": ".", "name": "workspace" },
-    { "path": ".copilot/memories", "name": "workspace-memories" },
     { "path": "integration-core", "name": "core" },
     { "path": "integration-huron-person", "name": "huron-person" },
     { "path": "integration-huron-person-fargate", "name": "huron-person-fargate" }
@@ -135,7 +135,6 @@ The `workspace` root also contains every package folder, so hide them inside tha
 ```json
 {
   "files.exclude": {
-    ".copilot": true,
     "integration-*": true,
     "basic-readonly-npm-registry": true
   }
@@ -162,28 +161,29 @@ claude
 
 Notes:
 - When starting Claude Code inside a package repository, it stops searching parent directories at that repository's root. Add the workspace root with `--add-dir` (or `/add-dir` in a running session) to load the skills, e.g. `claude --add-dir ..` from `integration-huron-person-fargate/`.
+- `--add-dir` does not load `CLAUDE.md` files from the added directory by default. To also load the workspace `.claude/CLAUDE.md`, set `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` (e.g. `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ..`).
 - `permissions.additionalDirectories` in `settings.json` only grants file access. It does not load skills.
 - Claude Code cloud sessions do not have access to this local clone. They only load skills committed to the checked-out repository or enabled on your claude.ai account.
 
 See [Extend Claude with skills](https://code.claude.com/docs/en/skills).
 
-## Workspace-Scoped Memory Files
+## Workspace Instructions (`CLAUDE.md`)
 
-The `.copilot/memories/` directory (displayed as "workspace-memories" in the workspace) stores workspace-scoped Copilot memory files that apply to all integration projects.
+`CLAUDE.md` at the root of this repository becomes `<workspace root>/.claude/CLAUDE.md`. It holds workspace-wide instructions that apply to all integration projects (core, huron-person, fargate, dashboard, file-drop, etc.): the architecture overview, pointers to the shared-pattern skills and project CLAUDE.md files, change and commit preferences, and the task verification protocol (build verification, test execution, and completion reporting on all code implementation tasks).
 
-**Purpose**: Contains coding preferences, task verification protocols, and workflow requirements that should be consistently applied across all projects (core, huron-person, fargate, dashboard, file-drop, etc.).
+**Discovery**:
+- **Claude Code**: `.claude/CLAUDE.md` is a native project instructions location, loaded at launch when Claude Code starts in the workspace root. Run `/context` and check **Memory files** to confirm.
+- **GitHub Copilot CLI**: loads `.claude/CLAUDE.md` when started in the workspace root.
+- **VS Code (GitHub Copilot Chat)**: loads `.claude/CLAUDE.md` from the workspace root folder (`"path": "."`) when the `chat.useClaudeMdFile` setting is enabled.
 
-**Key file**: `task-verification-protocol.md` - Defines requirements for build verification, test execution, and completion reporting on all code implementation tasks.
+Project-specific conventions stay in each package repository's own `CLAUDE.md`.
 
-**Discovery**: VS Code Copilot automatically loads memory files from this directory when included as a workspace folder in your `.code-workspace` file.
-
-**Location**: The `.copilot/memories/` directory exists at the workspace root level (parallel to project folders), not within individual project repositories. This ensures workspace-wide conventions are version-controlled separately from project-specific code.
-
-**Scope**: These memory files complement (not replace) the skills in this repository. Skills define domain-specific technical patterns, while memory files define workflow and verification requirements.
+**Scope**: These instructions complement (not replace) the skills in this repository. Skills define domain-specific technical patterns that load on demand, while `CLAUDE.md` defines workspace-wide context and workflow and verification requirements that load in every session.
 
 ## Maintenance Rules
 
 1. Keep each skill in its own folder with `SKILL.md` directly under `skills/`.
-2. Use one canonical skill location path in docs and examples.
-3. Document major skill changes in this repo history.
-4. Do not assume workspace-level source control for package repos.
+2. Keep `CLAUDE.md` at the root of this repository. Do not add a second workspace `CLAUDE.md` at the workspace root, since both would load and duplicate instructions.
+3. Use one canonical skill location path in docs and examples.
+4. Document major skill changes in this repo history.
+5. Do not assume workspace-level source control for package repos.
