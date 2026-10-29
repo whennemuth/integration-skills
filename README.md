@@ -61,27 +61,50 @@ flowchart LR
 
 ```text
 integration-workspace-skills/
-  skills/
-    <skill-name>/
-      SKILL.md
+  .claude/
+    skills/
+      <skill-name>/
+        SKILL.md
 ```
 
-`chat.agentSkillsLocations` must point to the parent directory that contains the individual skill folders.
+Skills live in `.claude/skills/`, a standard project skill location that both VS Code (GitHub Copilot) and Claude Code discover natively. No `chat.agentSkillsLocations` setting is needed.
 
-## VS Code Setup
-*NOTE: The following assumes a VS Code development environment - adapt as needed for other editors.*
- 
-To enable Copilot skill discovery in VS Code, configure the `chat.agentSkillsLocations` setting in your [**`.code-workspace`** file](https://code.visualstudio.com/docs/editing/workspaces/workspaces#_workspace-settings).
+## VS Code Setup (multi-root `.code-workspace`)
 
-Important: In [**multi-root**](https://code.visualstudio.com/docs/editing/workspaces/workspaces#_multiroot-workspaces) `.code-workspace` configurations, `chat.agentSkillsLocations` paths are resolved from each workspace root folder, not from the `.code-workspace` file path itself.
+VS Code discovers project skills in `.claude/skills/` (as well as `.github/skills/` and `.agents/skills/`) at the top of **each root folder** of a [**multi-root**](https://code.visualstudio.com/docs/editing/workspaces/workspaces#_multiroot-workspaces) workspace. Skills found in any root are available to chat for the whole workspace, regardless of which project you are working in.
 
-Recommended setting:
+To make these skills available, add this repository as a root folder in your `.code-workspace` file (see the examples below). Nothing else is required.
 
-```json
-"chat.agentSkillsLocations": {
-  "../integration-workspace-skills/skills": true
-}
+Notes:
+- Skills are only available while `integration-workspace-skills` is a root folder of the open workspace. Include it in every `.code-workspace` file for this integration.
+- Do not add same-named skills to the package repositories. When roots contain duplicate skill names, only the primary root's copy is used.
+- GitHub Copilot CLI and the GitHub Copilot app do not use VS Code workspaces. They discover project skills only in the repository they are started in.
+
+See [Use Agent Skills in VS Code](https://code.visualstudio.com/docs/agent-customization/agent-skills).
+
+## Claude Code Setup (started in the workspace root)
+
+Claude Code has no multi-root workspace. A session starting in the workspace root directory (the directory that contains `integration-workspace-skills/` and the package repositories) loads `.claude/skills/` from that directory and its parents, but skills in subdirectories such as `integration-workspace-skills/.claude/skills/` are only loaded after Claude first reads or edits a file in that subdirectory.
+
+To load the skills at startup, add this repository as an additional directory:
+
+```bash
+cd <workspace-root>
+claude --add-dir integration-workspace-skills
 ```
+
+Or, from within a running session:
+
+```text
+/add-dir integration-workspace-skills
+```
+
+Notes:
+- `permissions.additionalDirectories` in `settings.json` only grants file access. It does not load skills, so use `--add-dir` or `/add-dir`.
+- The same approach works when starting Claude Code inside a package repository, e.g. `claude --add-dir ../integration-workspace-skills` from `integration-huron-person-fargate/`.
+- Claude Code cloud sessions do not have access to this local repository. They only load skills committed to the checked-out repository or enabled on your claude.ai account.
+
+See [Extend Claude with skills](https://code.claude.com/docs/en/skills).
 
 ## Example Workspace: Core Only
 
@@ -104,9 +127,6 @@ Recommended setting:
   "settings": {
     "chat.tools.terminal.autoApprove": {
       "npm test": true
-    },
-    "chat.agentSkillsLocations": {
-      "../integration-workspace-skills/skills": true
     }
   }
 }
@@ -141,9 +161,6 @@ Recommended setting:
   "settings": {
     "chat.tools.terminal.autoApprove": {
       "npm test": true
-    },
-    "chat.agentSkillsLocations": {
-      "../integration-workspace-skills/skills": true
     }
   }
 }
@@ -165,7 +182,7 @@ The `.copilot/memories/` directory (displayed as "workspace-memories" in the wor
 
 ## Maintenance Rules
 
-1. Keep each skill in its own folder with `SKILL.md`.
+1. Keep each skill in its own folder with `SKILL.md` under `.claude/skills/`.
 2. Use one canonical skill location path in docs and examples.
 3. Document major skill changes in this repo history.
 4. Do not assume workspace-level source control for package repos.
