@@ -50,6 +50,11 @@ read it before changing code in that area:
   CLAUDE.md map, verification steps), update this file as part of the same work and tell the user. Keep only
   workspace-wide guidance here: put project detail in that project's CLAUDE.md and pattern detail in a skill instead of
   repeating it, and avoid details that go stale quickly, such as line numbers and counts.
+- Keep project CLAUDE.md files to what every session working there needs: rules, pitfalls and where things are.
+  History, incident narratives, figures from investigations and the reasoning behind decisions go in reference docs
+  in that project's `docs/` directory (for a folder with its own CLAUDE.md, such as fargate's `dashboard/`, its own
+  `docs/`). Point to them with ordinary Markdown links, not `@` imports, which would load them into every session.
+  When adding to a CLAUDE.md, move out anything that has become history.
 
 ## Task Verification Protocol
 
