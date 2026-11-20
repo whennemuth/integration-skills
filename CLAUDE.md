@@ -41,7 +41,7 @@ read it before changing code in that area:
 - `integration-huron-person/CLAUDE.md`, plus `src/data-source/`, `src/data-target/`, `src/data-mapper/`, and
   `src/delta-strategy/`
 - `integration-huron-person-fargate/CLAUDE.md`, plus `lib/`, `docker/`, `src/`, `src/chunking/`, `src/processing/`,
-  `src/post-processing/`, `src/runner/`, and `dashboard/`
+  `src/post-processing/`, `src/runner/`, `src/schedule/`, and `dashboard/`
 
 ## Change and Commit Preferences
 
